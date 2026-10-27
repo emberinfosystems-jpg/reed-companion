@@ -63,11 +63,12 @@ export function addMoment(mem, description) {
   if (mem.moments.length > 50) mem.moments = mem.moments.slice(-50);
 }
 
-// Warm, replayable list of the child's saved happy moments ("" if none). Screened by guard-out before send.
-export function momentsText(mem) {
+// Warm, replayable list of the child's saved moments ("" if none). The collection name is per-character
+// (Reed's "sketchbook", Mira's "Pocket Museum"). Screened by guard-out before send.
+export function momentsText(mem, collection = "sketchbook") {
   if (!Array.isArray(mem.moments) || mem.moments.length === 0) return "";
   const lines = mem.moments.map((m, i) => `${i + 1}. ${m.description}`);
-  return `Here are the happy moments we've kept in your sketchbook:\n\n${lines.join("\n")}\n\nI'll keep them safe for you. 🌟`;
+  return `Here are the things we've kept in your ${collection}:\n\n${lines.join("\n")}\n\nI'll keep them safe for you. 🌟`;
 }
 
 export function pushTurn(mem, who, text) {

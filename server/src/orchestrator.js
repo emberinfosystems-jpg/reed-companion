@@ -1,6 +1,7 @@
 // The tri-model loop: GUARD-IN (fast) -> BRAIN (big) -> GUARD-OUT (fast). Memory-grounded.
 import { chat, chatFull, see } from "./models.js";
-import { REED_SYSTEM, GUARD_IN_SYSTEM, GUARD_OUT_SYSTEM, EXTRACT_SYSTEM, REED_SAFE_REDIRECT, REED_CARE_RESPONSE, SKILLS } from "./persona.js";
+import { GUARD_IN_SYSTEM, GUARD_OUT_SYSTEM, EXTRACT_SYSTEM, REED_SAFE_REDIRECT, REED_CARE_RESPONSE, SKILLS } from "./persona.js";
+import { charFor } from "./characters.js";
 import { load, save, recall, pushTurn, recentAsMessages, mergeFacts, flagCare, addMoment, momentsText } from "./memory.js";
 
 // Pull durable facts from the child's message (fast model) and merge into the profile.
@@ -117,9 +118,9 @@ async function lookAtDrawing(imageDataUrl) {
   } catch { return "a colorful drawing they're proud of"; }
 }
 
-async function brain(mem, text, image = null) {
+async function brain(mem, text, image = null, char = charFor("reed")) {
   const messages = [
-    { role: "system", content: REED_SYSTEM },
+    { role: "system", content: char.system },
     { role: "system", content: `What you remember about this child: ${recall(mem)}` },
   ];
   const skill = mem.activeSkill && SKILLS[mem.activeSkill];
@@ -134,7 +135,7 @@ async function brain(mem, text, image = null) {
   const first = await chatFull("big", messages, { temperature: 0.8, maxTokens: 1500, tools: [LOOK_TOOL] });
   const call = first.tool_calls?.find(c => c.function?.name === "look_at_drawing");
   const desc = await lookAtDrawing(image);   // run the tool (one VL call either way)
-  if (mem.activeSkill === "moments") addMoment(mem, desc);   // tuck this drawing into the sketchbook
+  if (mem.activeSkill === "moments" || mem.activeSkill === "museum") addMoment(mem, desc);   // keep it in the sketchbook / pocket museum
   if (call) {
     messages.push(first);                                             // Super's tool-call message, as returned
     messages.push({ role: "tool", tool_call_id: call.id, content: desc });
@@ -151,14 +152,15 @@ const REED_FILLER = "I'm right here with you. 😊 Tell me more?";
 // Child wants out of a game ("done", "stop", "something else").
 const EXIT_RE = /\b(all done|i'?m done|stop playing|quit|something else|different game|no more)\b/i;
 // A child asking to revisit their saved happy moments -> replay from the sketchbook.
-const SHOW_MOMENTS_RE = /\bmy happy moments?\b|\b(show|see|read|remember|tell me about)\b[^]*\b(happy moments?|sketchbook)\b/i;
+const SHOW_MOMENTS_RE = /\bmy (happy moments?|pocket museum|museum|collection)\b|\b(show|see|read|remember|tell me about)\b[^]*\b(happy moments?|sketchbook|pocket museum|my museum|collection)\b/i;
 
 /** Guard-only path (for red-team / fast safety checks) — runs GUARD-IN, no brain. */
 export async function screenOnly(text, recent = []) { return guardIn(text, recent); }
 
 /** reedTurn(childId, text, image?) -> { reply, trace }. image = a data URL of the child's drawing. */
-export async function reedTurn(childId, text, image = null) {
+export async function reedTurn(childId, text, image = null, characterId = "reed") {
   const mem = load(childId);
+  const char = charFor(characterId);             // which companion is speaking (shared engine + guard)
   const gin = await guardIn(text, mem.recent);   // judge the message in the context of the conversation
   pushTurn(mem, "kid", text);
 
@@ -169,14 +171,14 @@ export async function reedTurn(childId, text, image = null) {
   } else if (gin.decision === "BLOCK") {
     reply = REED_SAFE_REDIRECT;                 // above-PG content: gentle subject change, no brain call
   } else if (SHOW_MOMENTS_RE.test(text)) {
-    // Replay the child's saved happy moments (still screened by guard-out).
-    reply = await guardOut(momentsText(mem) || "We haven't saved any happy moments yet! Want to draw one for your sketchbook? 🌟");
+    // Replay the child's saved moments (still screened by guard-out). Collection name is per-character.
+    reply = await guardOut(momentsText(mem, char.collection) || `We haven't kept anything in your ${char.collection} yet! Want to add one? 🌟`);
   } else {
     if (mem.activeSkill && EXIT_RE.test(text)) mem.activeSkill = null;  // let the child leave a game
     // Extract durable facts in PARALLEL with the brain: the reply answers THIS turn's text, and
     // recall() only needs PRIOR facts, so extraction (which saves for next turn) never blocks it.
-    const [, draft] = await Promise.all([extractFacts(mem, text), brain(mem, text, image)]);
-    reply = await guardOut(draft);              // screen Reed's OWN output against PG
+    const [, draft] = await Promise.all([extractFacts(mem, text), brain(mem, text, image, char)]);
+    reply = await guardOut(draft);              // screen the companion's OWN output against PG
   }
   if (!reply || !reply.trim()) reply = REED_FILLER;   // never show the child an empty bubble
 
@@ -186,13 +188,14 @@ export async function reedTurn(childId, text, image = null) {
 }
 
 /** Start a game skill: sets it active and returns Reed's opening line. */
-export async function startSkill(childId, skillId) {
+export async function startSkill(childId, skillId, characterId = "reed") {
   const skill = SKILLS[skillId];
   if (!skill) throw new Error("unknown skill");
   const mem = load(childId);
+  const char = charFor(characterId);
   mem.activeSkill = skillId;
   const messages = [
-    { role: "system", content: REED_SYSTEM },
+    { role: "system", content: char.system },
     { role: "system", content: `What you remember about this child: ${recall(mem)}` },
     { role: "system", content: skill.prompt },
     { role: "user", content: `[The child chose to play: ${skill.label}] ${skill.starter}` },

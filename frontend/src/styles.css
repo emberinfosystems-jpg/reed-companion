@@ -58,6 +58,13 @@ body{background:var(--bg);color:var(--ink);font:19px/1.5 "Segoe UI",system-ui,sa
 .grownups{margin-left:auto;font-size:13px;font-weight:600;color:var(--muted);background:transparent;border:1px solid var(--border);border-radius:30px;padding:7px 12px;cursor:pointer;white-space:nowrap}
 .grownups:hover{border-color:var(--reed);color:var(--reed)}
 
+/* companion picker — switch between characters (one shared engine) */
+.picker{display:flex;gap:8px;padding:10px 14px 0;background:var(--card)}
+.pick{display:flex;align-items:center;gap:7px;font-size:15px;font-weight:700;color:var(--muted);background:var(--bg);border:2px solid var(--border);border-radius:30px;padding:4px 14px 4px 4px;cursor:pointer}
+.pick img{width:28px;height:28px;border-radius:50%;object-fit:cover}
+.pick.on{color:var(--reed);border-color:var(--reed)}
+.pick:disabled{opacity:.55;cursor:default}
+
 /* parent view overlay — "data under your control" */
 .parent{position:fixed;inset:0;max-width:640px;margin:0 auto;background:var(--bg);display:flex;flex-direction:column;z-index:30}
 .parent-head{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;font-size:20px;font-weight:800;background:var(--card);border-bottom:1px solid var(--border)}

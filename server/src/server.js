@@ -9,6 +9,7 @@ import { reedTurn, startSkill } from "./orchestrator.js";
 import { exportMem, erase, listChildren } from "./memory.js";
 import { provider } from "./models.js";
 import { SKILLS } from "./persona.js";
+import { charList, skillsFor } from "./characters.js";
 
 const app = express();
 app.use(cors());
@@ -18,25 +19,27 @@ app.get("/api/health", (_req, res) => res.json({ ok: true, provider: provider() 
 
 // The companion turn: child message in, Reed's reply out.
 app.post("/api/chat", async (req, res) => {
-  const { childId, text, image } = req.body || {};
+  const { childId, text, image, character } = req.body || {};
   if (!childId || typeof text !== "string" || !text.trim())
     return res.status(400).json({ error: "childId and non-empty text required" });
   const img = typeof image === "string" && image.startsWith("data:image/") ? image : null;
   try {
-    const out = await reedTurn(childId, text.trim(), img);
+    const out = await reedTurn(childId, text.trim(), img, character);
     res.json(out);
   } catch (e) {
     res.status(500).json({ error: "reed_error", detail: String(e?.message || e) });
   }
 });
 
-// Reusable skills (games/activities) — list for the UI chips, and start one.
-app.get("/api/skills", (_req, res) =>
-  res.json({ skills: Object.values(SKILLS).map(({ id, label, emoji }) => ({ id, label, emoji })) }));
+// Companions a child can choose (shared engine + guard, different persona).
+app.get("/api/characters", (_req, res) => res.json({ characters: charList() }));
+
+// Reusable skills (games/activities) — the chips for the chosen character, and start one.
+app.get("/api/skills", (req, res) => res.json({ skills: skillsFor(req.query.character) }));
 app.post("/api/skill", async (req, res) => {
-  const { childId, skillId } = req.body || {};
+  const { childId, skillId, character } = req.body || {};
   if (!childId || !SKILLS[skillId]) return res.status(400).json({ error: "childId and valid skillId required" });
-  try { res.json(await startSkill(childId, skillId)); }
+  try { res.json(await startSkill(childId, skillId, character)); }
   catch (e) { res.status(500).json({ error: "skill_error", detail: String(e?.message || e) }); }
 });
 
