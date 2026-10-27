@@ -12,17 +12,18 @@ import { SKILLS } from "./persona.js";
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: "256kb" }));
+app.use(express.json({ limit: "8mb" }));   // room for a canvas drawing (base64 PNG) on a chat turn
 
 app.get("/api/health", (_req, res) => res.json({ ok: true, provider: provider() }));
 
 // The companion turn: child message in, Reed's reply out.
 app.post("/api/chat", async (req, res) => {
-  const { childId, text } = req.body || {};
+  const { childId, text, image } = req.body || {};
   if (!childId || typeof text !== "string" || !text.trim())
     return res.status(400).json({ error: "childId and non-empty text required" });
+  const img = typeof image === "string" && image.startsWith("data:image/") ? image : null;
   try {
-    const out = await reedTurn(childId, text.trim());
+    const out = await reedTurn(childId, text.trim(), img);
     res.json(out);
   } catch (e) {
     res.status(500).json({ error: "reed_error", detail: String(e?.message || e) });

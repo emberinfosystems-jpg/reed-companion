@@ -39,14 +39,14 @@ export default function App() {
     finally { setBusy(false); }
   }
 
-  async function sendText(t) {
+  async function sendText(t, image = null) {
     if (!t || busy) return;
     setMsgs((m) => [...m, { who: "kid", text: t }]);
     setBusy(true);
     try {
       const r = await fetch("/api/chat", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ childId: id.current, text: t }),
+        body: JSON.stringify({ childId: id.current, text: t, image }),
       });
       const data = await r.json();
       setMsgs((m) => [...m, { who: "reed", text: data.reply || "..." }]);
@@ -60,7 +60,7 @@ export default function App() {
     if (s.id === "draw") setDrawing(true);
     startSkill(s.id, s.label);
   }
-  function showDrawing() { setDrawing(false); sendText("Here's my drawing! 🎨"); }
+  function showDrawing(dataUrl) { setDrawing(false); sendText("Here's my drawing! 🎨", dataUrl); }
 
   return (
     <div className="app">

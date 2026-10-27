@@ -18,6 +18,8 @@ services:
         value: https://api.studio.nebius.com/v1
       - key: FAST_MODEL
         value: nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B
+      - key: VISION_MODEL
+        value: nvidia/Nemotron-3.5-Super-VL
       # Secrets — set these in the Render dashboard (both = your Nebius key). Never commit them.
       - key: BIG_API_KEY
         sync: false

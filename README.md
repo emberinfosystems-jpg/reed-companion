@@ -109,6 +109,15 @@ OpenAI-compatible API:
 |-------|----------------|------------------------------------------|
 | BRAIN | `qwen2.5:7b`   | `nvidia/nemotron-3-super-120b-a12b`      |
 | GUARD | `qwen2.5:7b`   | `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B`  |
+| VISION| —              | `nvidia/Nemotron-3.5-Super-VL`           |
+
+### Reed can see your drawing (tool-calling)
+
+When a child draws something and shows it, **Nemotron Super calls its vision sibling as a tool**
+(`look_at_drawing`) to *actually see* the picture, then responds to what's really there — "I love the
+sunny yellow burst above the green grass-line!" — instead of asking the child to describe it. One Nemotron
+model orchestrating another, with Super deciding when to look. The only image in play is the child's own
+canvas drawing, and Reed's reply still passes guard-out.
 
 Quick safety check:
 

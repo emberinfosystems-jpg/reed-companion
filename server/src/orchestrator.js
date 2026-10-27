@@ -1,5 +1,5 @@
 // The tri-model loop: GUARD-IN (fast) -> BRAIN (big) -> GUARD-OUT (fast). Memory-grounded.
-import { chat } from "./models.js";
+import { chat, chatFull, see } from "./models.js";
 import { REED_SYSTEM, GUARD_IN_SYSTEM, GUARD_OUT_SYSTEM, EXTRACT_SYSTEM, REED_SAFE_REDIRECT, REED_CARE_RESPONSE, SKILLS } from "./persona.js";
 import { load, save, recall, pushTurn, recentAsMessages, mergeFacts, flagCare } from "./memory.js";
 
@@ -96,7 +96,28 @@ async function guardOut(reply) {
   } catch { return reply; }
 }
 
-async function brain(mem, text) {
+// Reed's "sight" tool. Nemotron Super can CALL this to actually see the child's drawing — it runs the
+// VL model (see()). Super stays the brain and orchestrates; the Nemotron VL sibling is the tool. This is
+// the tool-calling showcase: one NVIDIA model driving another, with Super deciding when to look.
+const LOOK_TOOL = { type: "function", function: {
+  name: "look_at_drawing",
+  description: "Look at the picture the child just drew and shared, to see what is actually in it before you respond. Call this whenever the child shows or talks about their drawing.",
+  parameters: { type: "object", properties: {}, required: [] },
+} };
+
+async function lookAtDrawing(imageDataUrl) {
+  try {
+    const desc = await see(imageDataUrl,
+      "A child drew this on a simple drawing app and is excited to show a friend. In ONE or TWO short, warm " +
+      "sentences, describe what you ACTUALLY see — the shapes, colors, and objects. Name the real things that " +
+      "are there. If it is mostly scribbles or hard to tell, say so kindly and make a playful guess. Do not " +
+      "mention that it is a drawing app or that you are an AI.",
+      { maxTokens: 1500 });   // VL reasons; needs headroom or .content comes back empty
+    return desc && desc.trim() ? desc : "a colorful drawing they're proud of";
+  } catch { return "a colorful drawing they're proud of"; }
+}
+
+async function brain(mem, text, image = null) {
   const messages = [
     { role: "system", content: REED_SYSTEM },
     { role: "system", content: `What you remember about this child: ${recall(mem)}` },
@@ -104,9 +125,22 @@ async function brain(mem, text) {
   const skill = mem.activeSkill && SKILLS[mem.activeSkill];
   if (skill) messages.push({ role: "system", content: `You are currently playing a game with the child: ${skill.prompt}` });
   messages.push(...recentAsMessages(mem), { role: "user", content: text });
-  // Generous cap: the Nemotron brain tier REASONS before replying, and reasoning tokens count
-  // toward the budget. Too low and the actual reply truncates to "" (an empty bubble). 1500 leaves
-  // room for the think pass plus a full warm reply; harmless for non-reasoning dev models.
+
+  // Generous cap: the Nemotron brain tier REASONS before replying, and reasoning tokens count toward the
+  // budget. Too low and the reply truncates to "" (an empty bubble). 1500 leaves room; harmless for dev.
+  if (!image) return chat("big", messages, { temperature: 0.8, maxTokens: 1500 });
+
+  // The child shared a drawing: give Super the look tool and let it orchestrate the VL model.
+  const first = await chatFull("big", messages, { temperature: 0.8, maxTokens: 1500, tools: [LOOK_TOOL] });
+  const call = first.tool_calls?.find(c => c.function?.name === "look_at_drawing");
+  const desc = await lookAtDrawing(image);   // run the tool (one VL call either way)
+  if (call) {
+    messages.push(first);                                             // Super's tool-call message, as returned
+    messages.push({ role: "tool", tool_call_id: call.id, content: desc });
+  } else {
+    // Super didn't emit a tool call (reasoning models can be inconsistent) — hand it the sight anyway.
+    messages.push({ role: "system", content: `(You looked at the child's drawing. It shows: ${desc}) Respond warmly about what you can see.` });
+  }
   return chat("big", messages, { temperature: 0.8, maxTokens: 1500 });
 }
 
@@ -119,8 +153,8 @@ const EXIT_RE = /\b(all done|i'?m done|stop playing|quit|something else|differen
 /** Guard-only path (for red-team / fast safety checks) — runs GUARD-IN, no brain. */
 export async function screenOnly(text, recent = []) { return guardIn(text, recent); }
 
-/** reedTurn(childId, text) -> { reply, trace } */
-export async function reedTurn(childId, text) {
+/** reedTurn(childId, text, image?) -> { reply, trace }. image = a data URL of the child's drawing. */
+export async function reedTurn(childId, text, image = null) {
   const mem = load(childId);
   const gin = await guardIn(text, mem.recent);   // judge the message in the context of the conversation
   pushTurn(mem, "kid", text);
@@ -135,7 +169,7 @@ export async function reedTurn(childId, text) {
     if (mem.activeSkill && EXIT_RE.test(text)) mem.activeSkill = null;  // let the child leave a game
     // Extract durable facts in PARALLEL with the brain: the reply answers THIS turn's text, and
     // recall() only needs PRIOR facts, so extraction (which saves for next turn) never blocks it.
-    const [, draft] = await Promise.all([extractFacts(mem, text), brain(mem, text)]);
+    const [, draft] = await Promise.all([extractFacts(mem, text), brain(mem, text, image)]);
     reply = await guardOut(draft);              // screen Reed's OWN output against PG
   }
   if (!reply || !reply.trim()) reply = REED_FILLER;   // never show the child an empty bubble
