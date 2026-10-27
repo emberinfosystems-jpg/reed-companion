@@ -21,6 +21,9 @@ dist/
 build/
 frontend/dist/
 
+# --- video/demo production assets: concept renders + b-roll clips, local only ---
+demo-assets/
+
 # --- editor / OS ---
 .DS_Store
 Thumbs.db

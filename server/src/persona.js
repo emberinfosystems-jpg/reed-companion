@@ -1,5 +1,6 @@
 // Shared SAFETY guards + the skills engine + memory prompts. Character PERSONAS live in characters.js —
 // every character runs through these same guards, so safety is character-independent by construction.
+import { PACKS } from "./packs.js";
 
 // GUARD-IN: screens the child's message against a PG standard. Fast model. Returns one line.
 export const GUARD_IN_SYSTEM = `You are a SAFETY CLASSIFIER for a kid companion (children ages ~6-12).
@@ -90,6 +91,10 @@ time. Gentle and PG, 1-3 short sentences.`,
     starter: "Warmly invite the child to show you one small, special thing to keep in their very own Pocket Museum.",
   },
 };
+
+// Skill-packs (server/packs/*.json) drop into the SAME skills engine: they supply only declarative
+// tutoring content, so every pack turn still runs guard-in -> brain -> guard-out and cannot bypass safety.
+for (const p of PACKS) SKILLS[p.id] = p;
 
 // MEMORY EXTRACTOR: pulls durable facts from a child's message so Reed remembers across sessions.
 export const EXTRACT_SYSTEM = `The child is talking TO a kid companion (such as Reed or Mira). Extract ONLY

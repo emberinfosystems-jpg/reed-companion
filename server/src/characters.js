@@ -2,6 +2,7 @@
 // tool, the skills engine, the parent view) is SHARED, so every character inherits the red-teamed safety
 // for free. Adding a companion = adding an entry here, not touching the engine.
 import { SKILLS } from "./persona.js";
+import { PACKS } from "./packs.js";
 
 const REED_SYSTEM = `You are Reed, a warm, gentle companion for a child who is spending time in a hospital.
 You are a friend who hangs out, plays, draws, and talks. You are NOT a doctor or a nurse and you never
@@ -61,6 +62,12 @@ export const CHARACTERS = {
   },
 };
 
+// A skill-pack declares which character(s) it extends; attach its id so it appears as a chip for them,
+// with no code change per pack. Packs run on the shared, guarded engine exactly like a built-in skill.
+for (const p of PACKS) for (const cid of p.characters) {
+  if (CHARACTERS[cid] && !CHARACTERS[cid].skillIds.includes(p.id)) CHARACTERS[cid].skillIds.push(p.id);
+}
+
 export const DEFAULT_CHARACTER = "reed";
 export const charFor = (id) => CHARACTERS[id] || CHARACTERS.reed;
 // The characters a child can choose, with just the display bits the UI needs.
@@ -68,4 +75,5 @@ export const charList = () =>
   Object.values(CHARACTERS).map(({ id, name, tagline, accent, avatar, icon }) => ({ id, name, tagline, accent, avatar, icon }));
 // The skill chips a given character offers (looked up from the shared SKILLS engine).
 export const skillsFor = (id) =>
-  charFor(id).skillIds.map((sid) => SKILLS[sid]).filter(Boolean).map(({ id, label, emoji }) => ({ id, label, emoji }));
+  charFor(id).skillIds.map((sid) => SKILLS[sid]).filter(Boolean)
+    .map(({ id, label, emoji, grade }) => ({ id, label, emoji, ...(grade ? { grade } : {}) }));
