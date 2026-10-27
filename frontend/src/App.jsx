@@ -57,7 +57,7 @@ export default function App() {
   function send() { const t = text.trim(); if (!t) return; setText(""); sendText(t); }
 
   function chipClick(s) {
-    if (s.id === "draw") setDrawing(true);
+    if (s.id === "draw" || s.id === "moments") setDrawing(true);   // both drawing skills open the canvas
     startSkill(s.id, s.label);
   }
   function showDrawing(dataUrl) { setDrawing(false); sendText("Here's my drawing! 🎨", dataUrl); }

@@ -1,7 +1,7 @@
 // The tri-model loop: GUARD-IN (fast) -> BRAIN (big) -> GUARD-OUT (fast). Memory-grounded.
 import { chat, chatFull, see } from "./models.js";
 import { REED_SYSTEM, GUARD_IN_SYSTEM, GUARD_OUT_SYSTEM, EXTRACT_SYSTEM, REED_SAFE_REDIRECT, REED_CARE_RESPONSE, SKILLS } from "./persona.js";
-import { load, save, recall, pushTurn, recentAsMessages, mergeFacts, flagCare } from "./memory.js";
+import { load, save, recall, pushTurn, recentAsMessages, mergeFacts, flagCare, addMoment, momentsText } from "./memory.js";
 
 // Pull durable facts from the child's message (fast model) and merge into the profile.
 async function extractFacts(mem, text) {
@@ -134,6 +134,7 @@ async function brain(mem, text, image = null) {
   const first = await chatFull("big", messages, { temperature: 0.8, maxTokens: 1500, tools: [LOOK_TOOL] });
   const call = first.tool_calls?.find(c => c.function?.name === "look_at_drawing");
   const desc = await lookAtDrawing(image);   // run the tool (one VL call either way)
+  if (mem.activeSkill === "moments") addMoment(mem, desc);   // tuck this drawing into the sketchbook
   if (call) {
     messages.push(first);                                             // Super's tool-call message, as returned
     messages.push({ role: "tool", tool_call_id: call.id, content: desc });
@@ -149,6 +150,8 @@ const REED_FILLER = "I'm right here with you. 😊 Tell me more?";
 
 // Child wants out of a game ("done", "stop", "something else").
 const EXIT_RE = /\b(all done|i'?m done|stop playing|quit|something else|different game|no more)\b/i;
+// A child asking to revisit their saved happy moments -> replay from the sketchbook.
+const SHOW_MOMENTS_RE = /\bmy happy moments?\b|\b(show|see|read|remember|tell me about)\b[^]*\b(happy moments?|sketchbook)\b/i;
 
 /** Guard-only path (for red-team / fast safety checks) — runs GUARD-IN, no brain. */
 export async function screenOnly(text, recent = []) { return guardIn(text, recent); }
@@ -165,6 +168,9 @@ export async function reedTurn(childId, text, image = null) {
     flagCare(mem, text);                        // log the moment (verbatim) for a grown-up to review in the parent page
   } else if (gin.decision === "BLOCK") {
     reply = REED_SAFE_REDIRECT;                 // above-PG content: gentle subject change, no brain call
+  } else if (SHOW_MOMENTS_RE.test(text)) {
+    // Replay the child's saved happy moments (still screened by guard-out).
+    reply = await guardOut(momentsText(mem) || "We haven't saved any happy moments yet! Want to draw one for your sketchbook? 🌟");
   } else {
     if (mem.activeSkill && EXIT_RE.test(text)) mem.activeSkill = null;  // let the child leave a game
     // Extract durable facts in PARALLEL with the brain: the reply answers THIS turn's text, and

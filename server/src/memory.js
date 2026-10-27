@@ -12,6 +12,7 @@ const blank = (id) => ({
   threads: [],          // ongoing stories/games: { topic, note }
   recent: [],           // last turns: { who: "kid"|"reed", text }
   flagged: [],          // CARE moments for a grown-up to see: { at, text }
+  moments: [],          // happy-moment sketchbook: { at, description }
 });
 
 export function load(id) {
@@ -53,6 +54,20 @@ export function flagCare(mem, text) {
   if (!Array.isArray(mem.flagged)) mem.flagged = [];
   mem.flagged.push({ at: new Date().toISOString(), text });
   if (mem.flagged.length > 50) mem.flagged = mem.flagged.slice(-50);
+}
+
+// Happy-moment sketchbook: save the description of a drawing the child made (text only — never the image).
+export function addMoment(mem, description) {
+  if (!Array.isArray(mem.moments)) mem.moments = [];
+  mem.moments.push({ at: new Date().toISOString(), description: String(description || "").slice(0, 400) });
+  if (mem.moments.length > 50) mem.moments = mem.moments.slice(-50);
+}
+
+// Warm, replayable list of the child's saved happy moments ("" if none). Screened by guard-out before send.
+export function momentsText(mem) {
+  if (!Array.isArray(mem.moments) || mem.moments.length === 0) return "";
+  const lines = mem.moments.map((m, i) => `${i + 1}. ${m.description}`);
+  return `Here are the happy moments we've kept in your sketchbook:\n\n${lines.join("\n")}\n\nI'll keep them safe for you. 🌟`;
 }
 
 export function pushTurn(mem, who, text) {

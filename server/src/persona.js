@@ -87,6 +87,14 @@ it as a happy chance to TEACH: answer warmly with simple, concrete, kid-level ti
 Keep it light and encouraging, 1-3 short sentences.`,
     starter: "Warmly invite the child to draw something with you and suggest one fun, easy idea to start with.",
   },
+  moments: {
+    id: "moments", label: "Happy moment", emoji: "🌟",
+    prompt: `You and the child are saving a happy moment to their very own sketchbook. Warmly invite them to
+draw one happy thing from their day. When they show you the drawing, celebrate the real things you can see
+in it, and tell them you've tucked it safely into their sketchbook so they can ask to "see my happy moments"
+any time. Gentle and PG, 1-3 short sentences.`,
+    starter: "Warmly invite the child to draw one happy thing that happened today, to keep forever in their sketchbook.",
+  },
 };
 
 // MEMORY EXTRACTOR: pulls durable facts from a child's message so Reed remembers across sessions.
