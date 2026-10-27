@@ -1,0 +1,25 @@
+# Render Blueprint — one free web service serves the API + the built frontend on a single URL.
+# The model key is set as a secret in the Render dashboard, never committed. Render provides PORT.
+services:
+  - type: web
+    name: reed-companion
+    runtime: node
+    plan: free
+    buildCommand: cd frontend && npm install --include=dev && npm run build && cd ../server && npm install
+    startCommand: cd server && node src/server.js
+    envVars:
+      - key: MODEL_PROVIDER
+        value: nebius
+      - key: BIG_BASE_URL
+        value: https://api.studio.nebius.com/v1
+      - key: BIG_MODEL
+        value: nvidia/nemotron-3-super-120b-a12b
+      - key: FAST_BASE_URL
+        value: https://api.studio.nebius.com/v1
+      - key: FAST_MODEL
+        value: nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B
+      # Secrets — set these in the Render dashboard (both = your Nebius key). Never commit them.
+      - key: BIG_API_KEY
+        sync: false
+      - key: FAST_API_KEY
+        sync: false
