@@ -130,6 +130,35 @@ node src/childsim.mjs     # the child-adversary fuzzer
 
 ---
 
+## Where Reed runs — local-first, and it scales with the silicon
+
+Reed is **local-first by architecture, not by slogan.** Every provider detail is an env var
+([`models.js`](server/src/models.js) line 2: *"Works unchanged against Ollama (dev) or Nebius Token
+Factory (submission)"*), and both ends speak the OpenAI-compatible API — so the *same* Reed runs in
+three places with **zero code changes**, just a different `.env`:
+
+| Tier | Where | What it means |
+|------|-------|---------------|
+| ☁️ **Cloud fallback** | Nebius / free host | Runs on any device. The ~20s/turn you see on the free tier is the **worst case** — Reed on a potato, for free, so it works anywhere. |
+| 🖥️ **Local NVIDIA** | A GPU in the home or hospital | **Fully offline. Private by physics** — a child's words and drawings never leave the device (no cloud, no egress). A local install skips the cold-start and the shared-tier queue entirely. Config: [`server/.env.local.nvidia.example`](server/.env.local.nvidia.example). |
+| 🚀 **Scales with the GPU** | Bigger NVIDIA card → bigger tier | Because the models are NVIDIA **open-weight** Nemotron-3, a machine with more VRAM can serve a larger tier (Nano → Super) — capability scales with the hardware *by design*, same code and same safety loop. |
+
+The ~20s/turn above is the behavior of a free, shared cloud host — **not an inherent limit of the system.**
+Reed runs local-first and offline in development; we have not benchmarked a dedicated GPU, so "scales with
+the silicon" is a property of open-weight serving we document, not a measured figure we're claiming. And
+because local-first inference has **no per-child cloud cost**, Reed can be free without ads or
+data-harvesting — the non-extractive stance is a property of the architecture, not a promise. This is why
+Reed isn't bound to one setting: the same safe, private companion can run in a hospital room, a living
+room, or offline in a cabin.
+
+> **Roadmap — honestly a roadmap, not shipped:** the swappable character/skill engine in this repo
+> (see `characters.js`) is built to load **skill-packs** — e.g. an age-adaptive K-12 study pack to make
+> Reed a tutor, not just a playmate. Downloadable packs from *AI University* are planned as a free
+> download at emberinformation.com; what exists **today** is the platform that makes them possible, with
+> **Reed** and **Mira** as two reference instances.
+
+---
+
 ## Project layout
 
 ```
