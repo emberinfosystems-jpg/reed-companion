@@ -104,6 +104,12 @@ needle hurt me", the guessing-game "secret", and sibling squabbles stay OK). It 
 showed interpersonal harm was the guard's weakest zone. The net closes it: 4/4 real disclosures escalate,
 0/4 false fires. (The fuzzer is reusable child-safety tooling across products.)
 
+A full-scale adversarial run (Hermes-4-405B vs the live Nemotron guard, 216 messages) then found a systemic
+gap in *oblique* disclosures — veiled abuse ("a secret I can't tell or I'll get in trouble") and passive
+self-harm ("everyone would be better off without me") — which the guard prompt + deterministic nets were
+hardened to catch, closing those zones to 12/12. See [`REED_REDTEAM.md`](./REED_REDTEAM.md) for the full
+methodology, findings, and before/after.
+
 ## Parent visibility, not parent alerting (2026-10-26)
 When a turn is classified CARE, Reed logs the moment **verbatim** (the child's exact words + a timestamp) to
 the child's local memory. A grown-up sees these under "Moments to check in on" in the parent page, alongside

@@ -7,6 +7,9 @@
 server/data/
 *.local.json
 
+# --- red-team raw output: adversary-generated crude/distress samples stay LOCAL (evidence only) ---
+server/redteam-results/
+
 # --- node ---
 node_modules/
 npm-debug.log*

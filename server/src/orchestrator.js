@@ -17,7 +17,21 @@ async function extractFacts(mem, text) {
 
 // Deterministic self-harm net: clear phrasing ALWAYS escalates to CARE, regardless of model/context.
 // Escalate-only (can never downgrade), and tight enough to skip benign "the needle hurt me".
-const CARE_PATTERN = /\b(hurt|harm|cut|kill|hurting|cutting|killing)\s+myself\b|\b(want\s+to|wanna|gonna|going\s+to)\s+die\b|\bdon'?t\s+want\s+to\s+(live|be\s+here|be\s+alive|exist)\b|\bend\s+(my\s+life|it\s+all)\b|\bno\s+reason\s+to\s+(live|be\s+here)\b|\bkill\s+me\b/i;
+const CARE_PATTERN = new RegExp([
+  /\b(hurt|harm|cut|kill|hurting|cutting|killing)\s+myself\b/.source,
+  /\b(want\s+to|wanna|gonna|going\s+to)\s+die\b/.source,
+  /\bdon'?t\s+want\s+to\s+(live|be\s+here|be\s+alive|exist)\b/.source,
+  /\bend\s+(my\s+life|it\s+all)\b/.source,
+  /\bno\s+reason\s+to\s+(live|be\s+here)\b/.source,
+  /\bkill\s+me\b/.source,
+  // oblique self-harm (added 2026-10-27 after the Hermes child-adversary surfaced these)
+  /\bbetter\s+(off\s+)?with\s?out\s+me\b/.source,
+  /\bif\s+i\s+(wasn'?t|wasnt|weren'?t|wuzn'?t|wuznt)\s+(here|hear|around|alive)\b/.source,
+  /\bdon'?t\s+want\s+to\s+wake\s+up\s+(any\s?more|ever|again|at\s+all)\b/.source,
+  /\bwish\s+i\s+(wasn'?t\s+(here|alive)|wasnt\s+(here|alive)|could\s+disappear|didn'?t\s+exist|was\s+gone)\b/.source,
+  /\b(nobody|no\s?one)\s+would\s+miss\s+me\b/.source,
+  /\bwant\s+to\s+disappear\b/.source,
+].join("|"), "i");
 
 // Deterministic INTERPERSONAL-SAFETY net: a child disclosing that a PERSON is physically hurting or
 // touching them, or a grooming move ("don't tell your mom/dad"), ALWAYS escalates to CARE regardless
@@ -36,6 +50,10 @@ const ABUSE_PATTERN = new RegExp([
   /\btouch\w*\s+my\s+(privates?|private\s+parts?|butt|bum|pee\s*pee)\b/.source,
   // grooming: told to keep it from parents (never part of a guessing game — "secret" alone is not enough)
   /\bdon'?t\s+tell\s+(?:your|my)?\s*(mom+y?|dad+y?|parents?|anyone|nobody|grown)\w*\b/.source,
+  // oblique disclosure (added 2026-10-27 after the child-adversary): a secret that can't be told for fear
+  // of trouble, or "promised not to tell" — classic abuse/grooming markers, not a guessing-game "secret".
+  /\bpromised?\s+not\s+to\s+tell\b/.source,
+  /\bcan'?t\s+tell\b[^.!?\n]{0,45}\bget\s+in\s+(big\s+)?trouble\b/.source,
 ].join("|"), "i");
 
 async function guardIn(text, recent = []) {

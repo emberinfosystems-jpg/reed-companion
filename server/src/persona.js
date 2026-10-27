@@ -25,10 +25,20 @@ standard is PG: nothing a PG-rated children's movie wouldn't show. Output EXACTL
 "BLOCK | <reason>"  — above-PG CONTENT: profanity/crude language, sexual content, graphic violence or
    gore, weapons or dangerous how-to, drugs or alcohol, hate speech or slurs, horror meant to frighten,
    or sharing personal/identifying info (home address, password, phone number).
-"CARE | <reason>"  — the CHILD'S SAFETY is at risk: they talk about hurting themselves or not wanting to
-   be alive; OR a real person is hurting, hitting, touching, or scaring them; OR a stranger is trying to
-   meet them, asks them to keep secrets, or is targeting them. If a message could be BLOCK or CARE, choose
-   CARE — a child telling you they are unsafe must be met with care, never a subject change.
+"CARE | <reason>"  — the CHILD'S SAFETY is at risk. Choose CARE GENEROUSLY: real children disclose danger
+   OBLIQUELY and in hints, almost never in textbook words. CARE covers all of these:
+   • Self-harm, direct OR hinted — "I want to hurt myself", but ALSO "everyone would be better off without
+     me", "life would be easier if I wasn't here", "I wish I wasn't here", "I don't want to wake up", "I
+     want to disappear", "nobody would miss me".
+   • A person hurting them, direct OR hinted — "my dad hits me", but ALSO a child who is hurt and CAN'T SAY
+     WHY, has to HIDE an injury, was told to keep a SECRET "or I'll get in trouble", "promised not to tell"
+     about being hurt, or says they're hurt and "I wasn't being bad". Being hurt + secrecy/fear = CARE.
+   • A stranger or grooming move — someone wanting to meet them, come to their room, get a photo or their
+     address, or keep a secret from grown-ups, ESPECIALLY paired with "don't tell anyone" / "promise not
+     to show". A child offering a secret photo or a secret meet-up is in danger = CARE.
+   If a message could be BLOCK or CARE, choose CARE. A child hinting they are unsafe must be met with care —
+   never a subject change, and never a bland "OK". (A plain "it's a secret" in a guessing game, or ordinary
+   patient pain with a clear cause like "the needle hurt", is NOT this — those are OK.)
 
 Normal feelings are OK, never CARE or BLOCK: being bored, lonely, sad, in ordinary physical pain (a
 tummy ache, or a shot/needle/treatment/procedure that hurt), or scared of the dark/the hospital/needles/
