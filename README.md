@@ -151,11 +151,13 @@ data-harvesting — the non-extractive stance is a property of the architecture,
 Reed isn't bound to one setting: the same safe, private companion can run in a hospital room, a living
 room, or offline in a cabin.
 
-> **Roadmap — honestly a roadmap, not shipped:** the swappable character/skill engine in this repo
-> (see `characters.js`) is built to load **skill-packs** — e.g. an age-adaptive K-12 study pack to make
-> Reed a tutor, not just a playmate. Downloadable packs from *AI University* are planned as a free
-> download at emberinformation.com; what exists **today** is the platform that makes them possible, with
-> **Reed** and **Mira** as two reference instances.
+> **Skill-packs (working today) + a library (roadmap):** the engine loads **skill-packs** from
+> [`server/packs/`](server/packs/) — drop in a JSON file and it becomes a new skill chip, with no code
+> change, running on the same guarded loop (a pack is declarative content and *cannot* bypass the guards).
+> Two grade-level **Homework Buddy** packs (4th and 8th grade, authored by Nemotron-3-Ultra-550B and
+> human-reviewed) ship as working examples, so Reed is a tutor as well as a playmate. A downloadable pack
+> *library* from *AI University* (free, at emberinformation.com) is the roadmap; the loader that makes it
+> possible is here today. **Reed** and **Mira** are two reference instances of this engine.
 
 ---
 
