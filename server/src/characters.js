@@ -72,9 +72,11 @@ for (const p of PACKS) for (const cid of p.characters) {
 
 export const DEFAULT_CHARACTER = "reed";
 export const charFor = (id) => CHARACTERS[id] || CHARACTERS.reed;
-// The characters a child can choose, with just the display bits the UI needs.
+// The characters a child can choose, with just the display bits the UI needs (greeting included so the
+// companion's opening line shows in the bubble / voice caption).
 export const charList = () =>
-  Object.values(CHARACTERS).map(({ id, name, tagline, accent, avatar, icon }) => ({ id, name, tagline, accent, avatar, icon }));
+  Object.values(CHARACTERS).map(({ id, name, tagline, accent, avatar, icon, greeting }) =>
+    ({ id, name, tagline, accent, avatar, icon, greeting }));
 // The skill chips a given character offers (looked up from the shared SKILLS engine).
 export const skillsFor = (id) =>
   charFor(id).skillIds.map((sid) => SKILLS[sid]).filter(Boolean)
