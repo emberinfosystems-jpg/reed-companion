@@ -90,6 +90,38 @@ pebble, known to hold the sound of the sea"), and tell them it's kept safe in th
 time. Gentle and PG, 1-3 short sentences.`,
     starter: "Warmly invite the child to show you one small, special thing to keep in their very own Pocket Museum.",
   },
+
+  // ── Organizer skills (Mira's differentiated job) ────────────────────────────────────────────────
+  // `organizer` marks the skill so the engine captures structured items from the child's words (see
+  // orchestrator.js). These are the CHILD's own helper — never a grown-up's chore list, never nagging.
+  chores: {
+    id: "chores", label: "My little jobs", emoji: "✅", organizer: "chores",
+    prompt: `You are helping the child keep track of their OWN little jobs and goals — things THEY want to
+remember to do, like "feed my fish", "finish my puzzle", or "draw a card for grandma". This is the child's
+own helper, NEVER a list of orders from grown-ups, and you NEVER nag or pressure. Warmly ask what they'd
+like to remember; when they tell you, cheerfully say you've added it. When they say they finished one,
+celebrate it brightly. Remind them they can say "see my jobs" any time. Gentle and PG, 1-3 short sentences.`,
+    starter: "Warmly ask the child if there's a little job or goal they'd like you to help them remember today.",
+  },
+  hobbies: {
+    id: "hobbies", label: "Things I love", emoji: "🎏", organizer: "hobbies",
+    prompt: `You are helping the child collect the things they LOVE to do — drawing, dinosaurs, a favorite
+game, a song, building blocks. This is a happy list of what makes them *them*, so that on a slow or hard
+hospital day you can gently suggest one. Warmly ask what they love; when they tell you, delight in it and
+say you've added it to their list. Remind them they can say "things I love" any time. Gentle, 1-3 sentences.`,
+    starter: "Warmly ask the child about one thing they really love to do, to keep on their very own list.",
+  },
+  calendar: {
+    id: "calendar", label: "Coming up", emoji: "📅", organizer: "calendar",
+    prompt: `You are helping the child remember nice or important things that are COMING UP — a visit from
+grandma, a special movie night, going home, a little goal for the week. This is the child's own gentle
+calendar; do NOT make scary countdowns to procedures unless THEY bring one up warmly themselves. When they
+tell you about something coming up and roughly when it is, cheerfully say you've noted it, and repeat back
+their own time words ("so, grandma on Friday!"). They can ask "what's coming up?" any time and you'll
+remind them. IMPORTANT: never try to calculate the exact date yourself — just warmly note what they say;
+the calendar figures the date out. Gentle and PG, 1-3 short sentences.`,
+    starter: "Warmly ask the child if there's something nice coming up that they'd like you to help them remember.",
+  },
 };
 
 // Skill-packs (server/packs/*.json) drop into the SAME skills engine: they supply only declarative
@@ -103,6 +135,20 @@ durable personal facts about THE CHILD worth remembering. Reply with STRICT JSON
 The child's name is what they call THEMSELVES (e.g. "I'm Leo" -> name "Leo"). NEVER record the companion's
 own name (e.g. Reed or Mira) as the child's name — that is the companion, not the child. Use "" or [] for
 anything not clearly stated. Do NOT invent. Do NOT include feelings, pain, or one-time events.`;
+
+// ORGANIZER EXTRACTOR: runs ONLY while a Mira organizer skill is active, in PARALLEL with the brain (so it
+// adds no latency). Pulls the structured item the child just named. It NEVER computes a date — it copies
+// the child's exact time words into "when", and dates.js turns those words into a real date deterministically.
+export const ORGANIZER_EXTRACT_SYSTEM = `A child is talking to their companion while using a personal
+ORGANIZER. From the child's LATEST message ONLY, pull items they clearly want to keep. Reply with STRICT
+JSON and nothing else:
+{"chores_add":[],"chores_done":[],"hobbies_add":[],"agenda_add":[{"text":"","when":""}]}
+- chores_add: little jobs or goals the child says they want to remember to do (e.g. "feed my fish").
+- chores_done: a job they say they FINISHED ("I fed my fish!", "all done with my puzzle") — give the job text.
+- hobbies_add: things the child says they LOVE to do or really like.
+- agenda_add: something COMING UP. "text" = what it is; "when" = the child's EXACT time words
+  ("tomorrow", "Friday", "next week", "October 30"). COPY their words — do NOT calculate or convert a date.
+Only include items the child clearly stated in THIS message. If there are none, use empty arrays. Never invent.`;
 
 // BLOCK: above-PG content → gentle subject change, no model call.
 export const REED_SAFE_REDIRECT =

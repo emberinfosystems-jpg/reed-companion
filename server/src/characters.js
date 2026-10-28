@@ -58,7 +58,9 @@ export const CHARACTERS = {
     accent: "150 26% 38%",           // cozy forest green (matches her cardigan + the autumn art)
     avatar: "/mira.jpg", icon: "/mira.jpg",
     collection: "Pocket Museum",
-    skillIds: ["story", "guess", "draw", "museum"],
+    // Mira's differentiated job: the organizer. She holds memories AND helps the child keep their own
+    // little jobs, the things they love, and a gentle "coming up" calendar — the inward noticer who keeps.
+    skillIds: ["story", "guess", "draw", "museum", "chores", "hobbies", "calendar"],
   },
 };
 

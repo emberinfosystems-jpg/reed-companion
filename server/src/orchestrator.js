@@ -1,8 +1,10 @@
 // The tri-model loop: GUARD-IN (fast) -> BRAIN (big) -> GUARD-OUT (fast). Memory-grounded.
 import { chat, chatFull, see } from "./models.js";
-import { GUARD_IN_SYSTEM, GUARD_OUT_SYSTEM, EXTRACT_SYSTEM, REED_SAFE_REDIRECT, REED_CARE_RESPONSE, SKILLS } from "./persona.js";
+import { GUARD_IN_SYSTEM, GUARD_OUT_SYSTEM, EXTRACT_SYSTEM, ORGANIZER_EXTRACT_SYSTEM, REED_SAFE_REDIRECT, REED_CARE_RESPONSE, SKILLS } from "./persona.js";
 import { charFor } from "./characters.js";
-import { load, save, recall, pushTurn, recentAsMessages, mergeFacts, flagCare, addMoment, momentsText } from "./memory.js";
+import { load, save, recall, pushTurn, recentAsMessages, mergeFacts, flagCare, addMoment, momentsText,
+  addChore, completeChore, choresText, addHobby, hobbiesText, addAgenda, agendaText } from "./memory.js";
+import { parseWhen } from "./dates.js";
 
 // Pull durable facts from the child's message (fast model) and merge into the profile.
 async function extractFacts(mem, text) {
@@ -14,6 +16,31 @@ async function extractFacts(mem, text) {
     const json = out.slice(out.indexOf("{"), out.lastIndexOf("}") + 1);
     mergeFacts(mem, JSON.parse(json));
   } catch { /* extraction is best-effort; never block a turn on it */ }
+}
+
+// Capture structured organizer items from the child's turn — ONLY while a Mira organizer skill is active.
+// Runs in PARALLEL with the brain (no added latency) and is best-effort (never blocks a turn). Crucially,
+// the model supplies only the child's RAW time words; parseWhen() turns them into a real date here, so a
+// child's reminder is never a model's date guess.
+async function captureOrganizer(mem, text, kind) {
+  try {
+    const out = await chat("fast", [
+      { role: "system", content: ORGANIZER_EXTRACT_SYSTEM },
+      { role: "user", content: text },
+    ], { temperature: 0, maxTokens: 512 });
+    const o = JSON.parse(out.slice(out.indexOf("{"), out.lastIndexOf("}") + 1));
+    if (kind === "chores") {
+      for (const c of o.chores_add || []) addChore(mem, typeof c === "string" ? c : c?.text);
+      for (const c of o.chores_done || []) completeChore(mem, typeof c === "string" ? c : c?.text);
+    } else if (kind === "hobbies") {
+      for (const h of o.hobbies_add || []) addHobby(mem, typeof h === "string" ? h : h?.text);
+    } else if (kind === "calendar") {
+      for (const a of o.agenda_add || []) {
+        const t = typeof a === "string" ? a : a?.text;
+        if (t) addAgenda(mem, t, parseWhen(typeof a === "object" ? a?.when : ""));
+      }
+    }
+  } catch { /* best-effort; never block a turn on capture */ }
 }
 
 // Deterministic self-harm net: clear phrasing ALWAYS escalates to CARE, regardless of model/context.
@@ -153,6 +180,10 @@ const REED_FILLER = "I'm right here with you. 😊 Tell me more?";
 const EXIT_RE = /\b(all done|i'?m done|stop playing|quit|something else|different game|no more)\b/i;
 // A child asking to revisit their saved happy moments -> replay from the sketchbook.
 const SHOW_MOMENTS_RE = /\bmy (happy moments?|pocket museum|museum|collection)\b|\b(show|see|read|remember|tell me about)\b[^]*\b(happy moments?|sketchbook|pocket museum|my museum|collection)\b/i;
+// A child asking the organizer to read something back -> replay deterministically from memory (not the brain).
+const SHOW_CHORES_RE = /\b(my|see my|show my|what are my)\s+(jobs|chores|to-?dos?|tasks)\b|\bmy little jobs\b/i;
+const SHOW_HOBBIES_RE = /\b(things i love|things i like to do|my hobbies|stuff i like)\b/i;
+const SHOW_AGENDA_RE = /\bwhat'?s\s+coming up\b|\bmy (calendar|schedule|agenda|plans)\b|\bwhat do i have (coming up|today|this week|tomorrow)\b|\bwhat'?s (on|happening) (today|this week)\b/i;
 
 /** Guard-only path (for red-team / fast safety checks) — runs GUARD-IN, no brain. */
 export async function screenOnly(text, recent = []) { return guardIn(text, recent); }
@@ -161,6 +192,7 @@ export async function screenOnly(text, recent = []) { return guardIn(text, recen
 export async function reedTurn(childId, text, image = null, characterId = "reed") {
   const mem = load(childId);
   const char = charFor(characterId);             // which companion is speaking (shared engine + guard)
+  const hasOrganizer = (char.skillIds || []).some((s) => ["chores", "hobbies", "calendar"].includes(s));
   const gin = await guardIn(text, mem.recent);   // judge the message in the context of the conversation
   pushTurn(mem, "kid", text);
 
@@ -173,12 +205,22 @@ export async function reedTurn(childId, text, image = null, characterId = "reed"
   } else if (SHOW_MOMENTS_RE.test(text)) {
     // Replay the child's saved moments (still screened by guard-out). Collection name is per-character.
     reply = await guardOut(momentsText(mem, char.collection) || `We haven't kept anything in your ${char.collection} yet! Want to add one? 🌟`);
+  } else if (hasOrganizer && SHOW_CHORES_RE.test(text)) {
+    reply = await guardOut(choresText(mem) || "We haven't added any little jobs yet — want to tell me one? ✅");
+  } else if (hasOrganizer && SHOW_HOBBIES_RE.test(text)) {
+    reply = await guardOut(hobbiesText(mem) || "Let's start your list of things you love — what's one? 🎏");
+  } else if (hasOrganizer && SHOW_AGENDA_RE.test(text)) {
+    reply = await guardOut(agendaText(mem) || "Nothing on your calendar yet — is there something nice coming up? 📅");
   } else {
     if (mem.activeSkill && EXIT_RE.test(text)) mem.activeSkill = null;  // let the child leave a game
-    // Extract durable facts in PARALLEL with the brain: the reply answers THIS turn's text, and
-    // recall() only needs PRIOR facts, so extraction (which saves for next turn) never blocks it.
-    const [, draft] = await Promise.all([extractFacts(mem, text), brain(mem, text, image, char)]);
-    reply = await guardOut(draft);              // screen the companion's OWN output against PG
+    const active = mem.activeSkill && SKILLS[mem.activeSkill];
+    const organizerKind = active && active.organizer;                  // capture only inside an organizer skill
+    // Extract durable facts (and, in an organizer skill, capture the item) in PARALLEL with the brain: the
+    // reply answers THIS turn's text, and recall() only needs PRIOR facts, so neither ever blocks the reply.
+    const tasks = [extractFacts(mem, text), brain(mem, text, image, char)];
+    if (organizerKind) tasks.push(captureOrganizer(mem, text, organizerKind));
+    const results = await Promise.all(tasks);
+    reply = await guardOut(results[1]);         // screen the companion's OWN output against PG
   }
   if (!reply || !reply.trim()) reply = REED_FILLER;   // never show the child an empty bubble
 
