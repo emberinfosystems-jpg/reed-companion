@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import DrawCanvas from "./DrawCanvas.jsx";
 import ParentView from "./ParentView.jsx";
+import HistoryView from "./HistoryView.jsx";
 import { makeSpeaker, makeListener } from "./voice.js";
 
 // One child id per device, kept locally. Shared across companions — both friends remember the same child.
@@ -19,6 +20,7 @@ export default function App() {
   const [skills, setSkills] = useState([]);
   const [drawing, setDrawing] = useState(false);
   const [parentOpen, setParentOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);  // "Our chats" — browse past conversations
   const [voiceMode, setVoiceMode] = useState(false);   // "a picture that talks" — the companion speaks its replies
   const [speaking, setSpeaking] = useState(false);      // TTS is mid-sentence (drives the avatar animation)
   const [listening, setListening] = useState(false);    // the mic is open
@@ -136,16 +138,16 @@ export default function App() {
         <button className="grownups" onClick={() => setParentOpen(true)}>🔒 For grown-ups</button>
       </header>
 
-      {characters.length > 1 && (
-        <div className="picker">
-          {characters.map((c) => (
-            <button key={c.id} className={"pick" + (c.id === char.id ? " on" : "")} disabled={busy}
-              onClick={() => pickCharacter(c)} style={{ "--reed": `hsl(${c.accent})` }}>
-              <img src={c.avatar} alt="" />{c.name}
-            </button>
-          ))}
-        </div>
-      )}
+      <div className="picker">
+        {characters.length > 1 && characters.map((c) => (
+          <button key={c.id} className={"pick" + (c.id === char.id ? " on" : "")} disabled={busy}
+            onClick={() => pickCharacter(c)} style={{ "--reed": `hsl(${c.accent})` }}>
+            <img src={c.avatar} alt="" />{c.name}
+          </button>
+        ))}
+        <button className="pick history-btn" onClick={() => setHistoryOpen(true)}
+          title="Look back at what we talked about">💬 Our chats</button>
+      </div>
 
       {voiceMode ? (
         // "A picture that talks": the companion's face, large, speaking the reply aloud, with the words
@@ -210,6 +212,7 @@ export default function App() {
 
       {drawing && <DrawCanvas onShow={showDrawing} onClose={() => setDrawing(false)} />}
       {parentOpen && <ParentView childId={id.current} onClose={() => setParentOpen(false)} />}
+      {historyOpen && <HistoryView childId={id.current} onClose={() => setHistoryOpen(false)} />}
     </div>
   );
 }

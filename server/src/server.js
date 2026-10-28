@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { existsSync } from "node:fs";
 import { reedTurn, startSkill } from "./orchestrator.js";
-import { exportMem, erase, listChildren } from "./memory.js";
+import { exportMem, erase, listChildren, load, history } from "./memory.js";
 import { provider } from "./models.js";
 import { SKILLS } from "./persona.js";
 import { charList, skillsFor } from "./characters.js";
@@ -42,6 +42,9 @@ app.post("/api/skill", async (req, res) => {
   try { res.json(await startSkill(childId, skillId, character)); }
   catch (e) { res.status(500).json({ error: "skill_error", detail: String(e?.message || e) }); }
 });
+
+// "Our chats" — the child's own browsable thread history, grouped by day (memory they can revisit).
+app.get("/api/history/:childId", (req, res) => res.json({ threads: history(load(req.params.childId)) }));
 
 // Parent view — "data under your control": see everything Reed knows, and erase it.
 app.get("/api/parent/:childId", (req, res) => res.json(exportMem(req.params.childId)));

@@ -3,7 +3,7 @@ import { chat, chatFull, see } from "./models.js";
 import { GUARD_IN_SYSTEM, GUARD_OUT_SYSTEM, EXTRACT_SYSTEM, ORGANIZER_EXTRACT_SYSTEM, REED_SAFE_REDIRECT, REED_CARE_RESPONSE, SKILLS } from "./persona.js";
 import { charFor } from "./characters.js";
 import { load, save, recall, pushTurn, recentAsMessages, mergeFacts, flagCare, addMoment, momentsText,
-  addChore, completeChore, choresText, addHobby, hobbiesText, addAgenda, agendaText } from "./memory.js";
+  addChore, completeChore, choresText, addHobby, hobbiesText, addAgenda, agendaText, logTurn } from "./memory.js";
 import { parseWhen } from "./dates.js";
 
 // Pull durable facts from the child's message (fast model) and merge into the profile.
@@ -195,6 +195,7 @@ export async function reedTurn(childId, text, image = null, characterId = "reed"
   const hasOrganizer = (char.skillIds || []).some((s) => ["chores", "hobbies", "calendar"].includes(s));
   const gin = await guardIn(text, mem.recent);   // judge the message in the context of the conversation
   pushTurn(mem, "kid", text);
+  logTurn(mem, "kid", text, characterId);         // durable transcript for "Our chats"
 
   let reply;
   if (gin.decision === "CARE") {
@@ -225,6 +226,7 @@ export async function reedTurn(childId, text, image = null, characterId = "reed"
   if (!reply || !reply.trim()) reply = REED_FILLER;   // never show the child an empty bubble
 
   pushTurn(mem, "reed", reply);
+  logTurn(mem, "reed", reply, characterId);
   save(mem);
   return { reply, trace: { guardIn: gin.raw, decision: gin.decision, intent: gin.intent, skill: mem.activeSkill || null } };
 }
@@ -246,6 +248,7 @@ export async function startSkill(childId, skillId, characterId = "reed") {
   let reply = await guardOut(draft);
   if (!reply || !reply.trim()) reply = REED_FILLER;
   pushTurn(mem, "reed", reply);
+  logTurn(mem, "reed", reply, characterId);
   save(mem);
   return { reply, skill: skillId };
 }

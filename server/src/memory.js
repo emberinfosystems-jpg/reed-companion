@@ -18,6 +18,7 @@ const blank = (id) => ({
   chores: [],           // the child's own little jobs/goals: { at, text, done }
   hobbies: [],          // things the child loves to do: { at, text }
   agenda: [],           // gentle "coming up" calendar: { at, text, date }  date = ISO (dates.js) or null
+  log: [],              // durable transcript for "Our chats" (thread retrieval): { at, who, text, char }
 });
 
 export function load(id) {
@@ -163,6 +164,51 @@ export function pushTurn(mem, who, text) {
 }
 export function recentAsMessages(mem) {
   return mem.recent.map(t => ({ role: t.who === "kid" ? "user" : "assistant", content: t.text }));
+}
+
+// ── "Our chats" thread retrieval ─────────────────────────────────────────────────────────────────
+// A DURABLE transcript, separate from the 12-turn `recent` window. The brain never reads `log`, so this
+// is display-only and cannot change inference or safety — it just lets a child revisit "what we talked
+// about yesterday." Bounded so it can't grow without limit.
+export function logTurn(mem, who, text, char) {
+  if (!Array.isArray(mem.log)) mem.log = [];
+  mem.log.push({ at: new Date().toISOString(), who, text: String(text || "").slice(0, 2000), char: char || null });
+  if (mem.log.length > 2000) mem.log = mem.log.slice(-2000);
+}
+
+const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const MON_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function dayKey(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }
+function dayLabel(iso, now) {
+  const [y, mo, da] = iso.split("-").map(Number);
+  const d = new Date(y, mo - 1, da); d.setHours(0, 0, 0, 0);
+  const base = new Date(now); base.setHours(0, 0, 0, 0);
+  const ago = Math.round((base - d) / 86400000);   // whole days in the past
+  if (ago === 0) return "Today";
+  if (ago === 1) return "Yesterday";
+  if (ago > 1 && ago < 7) return DAY_NAMES[d.getDay()];
+  return `${MON_NAMES[mo - 1]} ${da}`;
+}
+
+// Group the transcript into day "threads", newest first, for the kid-facing "Our chats" page.
+export function history(mem, now = new Date()) {
+  const log = mem.log || [];
+  if (!log.length) return [];
+  const byDay = new Map();
+  for (const t of log) {
+    const k = dayKey(new Date(t.at));
+    if (!byDay.has(k)) byDay.set(k, []);
+    byDay.get(k).push({ who: t.who, text: t.text, char: t.char || null });
+  }
+  const out = [];
+  for (const [day, turns] of byDay) {
+    const chars = [...new Set(turns.map(t => t.char).filter(Boolean))];
+    const firstKid = turns.find(t => t.who === "kid");
+    const preview = (firstKid?.text || turns[0]?.text || "").slice(0, 90);
+    out.push({ day, label: dayLabel(day, now), chars, count: turns.length, preview, turns });
+  }
+  out.sort((a, b) => (a.day < b.day ? 1 : -1));   // newest day first
+  return out;
 }
 
 // Parent controls — "data under your control."
