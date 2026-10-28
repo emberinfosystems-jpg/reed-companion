@@ -24,6 +24,15 @@ export default function App() {
   const [voiceMode, setVoiceMode] = useState(false);   // "a picture that talks" — the companion speaks its replies
   const [speaking, setSpeaking] = useState(false);      // TTS is mid-sentence (drives the avatar animation)
   const [listening, setListening] = useState(false);    // the mic is open
+  // Parent setting: whether the mic (browser STT — the one cloud-touching feature) is allowed. Default on.
+  const [micEnabled, setMicEnabled] = useState(() => {
+    try { return localStorage.getItem("reed_mic_enabled") !== "0"; } catch { return true; }
+  });
+  function changeMicEnabled(on) {
+    setMicEnabled(on);
+    try { localStorage.setItem("reed_mic_enabled", on ? "1" : "0"); } catch { /* ignore */ }
+    if (!on) stopMic();
+  }
   const endRef = useRef(null);
   const id = useRef(childId());
   const voiceRef = useRef(false);                        // async handlers read this to decide whether to speak
@@ -31,6 +40,7 @@ export default function App() {
   // Lazy singletons — created once, not on every render.
   const speaker = useRef(null); if (!speaker.current) speaker.current = makeSpeaker();
   const listener = useRef(null); if (!listener.current) listener.current = makeListener();
+  const micAvailable = !!listener.current?.supported && micEnabled;   // mic shown only if supported AND parent-allowed
 
   useEffect(() => { voiceRef.current = voiceMode; }, [voiceMode]);
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs, busy]);
@@ -104,7 +114,7 @@ export default function App() {
   // Optional on-device-ish mic (browser STT). Tap to listen; the transcript is sent as a normal message.
   function toggleMic() {
     if (listening) { stopMic(); return; }
-    if (!listener.current?.supported || busy) return;
+    if (!micAvailable || busy) return;
     speaker.current?.cancel(); setSpeaking(false);   // don't record the companion's own voice
     setListening(true);
     recRef.current = listener.current.start({
@@ -158,13 +168,13 @@ export default function App() {
           </div>
           <div className="caption">{busy ? `${char.name} is thinking…` : lastReed}</div>
           <div className="voicebar">
-            {listener.current?.supported ? (
+            {micAvailable ? (
               <button className={"mic" + (listening ? " on" : "")} disabled={busy} onClick={toggleMic}
                 aria-pressed={listening} aria-label={`Talk to ${char.name}`}>
                 {listening ? "● Listening…" : "🎤 Talk"}
               </button>
             ) : (
-              <span className="micnote">Talking isn't available in this browser — type instead 🙂</span>
+              <span className="micnote">Talking is off right now — type below 🙂</span>
             )}
             <div className="voicetype">
               <input value={text} onChange={(e) => setText(e.target.value)}
@@ -211,7 +221,8 @@ export default function App() {
       </p>
 
       {drawing && <DrawCanvas onShow={showDrawing} onClose={() => setDrawing(false)} />}
-      {parentOpen && <ParentView childId={id.current} onClose={() => setParentOpen(false)} />}
+      {parentOpen && <ParentView childId={id.current} onClose={() => setParentOpen(false)}
+        micEnabled={micEnabled} onMicEnabledChange={changeMicEnabled} />}
       {historyOpen && <HistoryView childId={id.current} onClose={() => setHistoryOpen(false)} />}
     </div>
   );

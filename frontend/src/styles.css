@@ -144,6 +144,40 @@ body{background:var(--bg);color:var(--ink);font:19px/1.5 "Segoe UI",system-ui,sa
 .transcript li b{color:var(--muted)}
 .transcript li.kid b{color:var(--kid-ink)}
 
+/* parent portal tabs */
+.ptabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.ptabs button{font-size:14px;font-weight:700;color:var(--muted);background:var(--card);border:1px solid var(--border);border-radius:30px;padding:8px 14px;cursor:pointer}
+.ptabs button.on{color:#fff;background:var(--reed);border-color:var(--reed)}
+
+/* settings */
+.setting-row{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;font-size:16px;line-height:1.5}
+.setting-row .fine{display:block;margin-top:4px}
+.switch{flex:none;width:22px;height:22px;accent-color:var(--reed);cursor:pointer;margin-top:3px}
+
+/* about */
+.about h2{font-size:22px;margin-bottom:10px;color:var(--reed)}
+.about h3{font-size:16px;margin:16px 0 6px}
+.about p{font-size:16px;line-height:1.6;color:var(--ink)}
+.about a{color:var(--reed)}
+
+/* legal (reuses @ember/legal section shapes; themed to Reed) */
+.eLegal{font-size:15px;line-height:1.6;color:var(--ink)}
+.eLegal-switch{display:flex;gap:6px;margin-bottom:10px}
+.eLegal-switch button{font-size:14px;font-weight:700;color:var(--muted);background:var(--card);border:1px solid var(--border);border-radius:30px;padding:6px 16px;cursor:pointer}
+.eLegal-switch button.on{color:#fff;background:var(--reed);border-color:var(--reed)}
+.eLegal-meta{font-size:12px;color:var(--muted);margin-bottom:16px}
+.eLegal-section{margin-bottom:18px}
+.eLegal-section h3{font-size:15px;font-weight:800;margin-bottom:6px}
+.eLegal-num{color:var(--reed);margin-right:4px}
+.eLegal p{margin-bottom:8px}
+.eLegal a{color:var(--reed)}
+.eLegal-list{margin:4px 0 10px;padding-left:20px}
+.eLegal-list li{margin-bottom:5px}
+.eLegal-table{width:100%;border-collapse:collapse;margin:6px 0 12px;font-size:14px}
+.eLegal-table th{text-align:left;vertical-align:top;width:34%;padding:8px 10px 8px 0;border-bottom:1px solid var(--border);font-weight:700}
+.eLegal-table td{padding:8px 0;border-bottom:1px solid var(--border)}
+.eLegal-muted{color:var(--muted);font-size:13px}
+
 @media (prefers-reduced-motion: reduce){.portrait.speaking,.mic.on{animation:none}}
 
 @media (prefers-color-scheme: dark){
